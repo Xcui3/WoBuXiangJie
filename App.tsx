@@ -28,6 +28,7 @@ interface Goal {
   lastCheckIn: string | null;
   witnessedAt: number | null;
   checkedInToday: boolean;
+  letterToSelf?: string;
 }
 
 const DAILY_QUOTES = [
@@ -53,8 +54,10 @@ const DAILY_QUOTES = [
   '不想戒，但在戒。这已经很了不起了。',
 ];
 
-function getDailyQuote(): string {
+function getDailyQuote(letterToSelf?: string): string {
+  // 每3天轮一次自己的话，其余时间用鸡汤
   const day = new Date().getDate();
+  if (letterToSelf && day % 3 === 0) return letterToSelf;
   return DAILY_QUOTES[day % DAILY_QUOTES.length];
 }
 
@@ -277,6 +280,7 @@ export default function App() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [newGoalName, setNewGoalName] = useState('');
+  const [newGoalLetter, setNewGoalLetter] = useState('');
   const [selectedGoal, setSelectedGoal] = useState<string | null>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -327,9 +331,11 @@ export default function App() {
       lastCheckIn: null,
       witnessedAt: null,
       checkedInToday: false,
+      letterToSelf: newGoalLetter.trim() || undefined,
     };
     await saveGoals([...goals, goal]);
     setNewGoalName('');
+    setNewGoalLetter('');
     setModalVisible(false);
   };
 
@@ -451,7 +457,7 @@ export default function App() {
         {goals.length === 0 && (
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyTitle}>还没有目标</Text>
-            <Text style={styles.emptyHint}>点右下角 + 开始</Text>
+            <Text style={styles.emptyHint}>点右下角 "+"，开始你的戒断之旅</Text>
           </View>
         )}
         {goals.map(goal => (
@@ -473,7 +479,7 @@ export default function App() {
         ))}
 
         <View style={styles.sleepHint}>
-          <Text style={styles.sleepHintText}>{getDailyQuote()}</Text>
+          <Text style={styles.sleepHintText}>{getDailyQuote(goals[0]?.letterToSelf)}</Text>
         </View>
       </ScrollView>
 
@@ -497,6 +503,16 @@ export default function App() {
               autoFocus
               maxLength={20}
             />
+            <Text style={styles.modalLetterLabel}>✉️ 写给未来的自己（选填）</Text>
+            <TextInput
+              style={[styles.input, styles.letterInput]}
+              placeholder="未来的我，你做到了。"
+              placeholderTextColor="#3a3a3a"
+              value={newGoalLetter}
+              onChangeText={setNewGoalLetter}
+              maxLength={60}
+              multiline
+            />
             <TouchableOpacity
               style={[styles.confirmBtn, !newGoalName.trim() && styles.confirmBtnDisabled]}
               onPress={addGoal}
@@ -505,7 +521,7 @@ export default function App() {
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.cancelBtn}
-              onPress={() => {setModalVisible(false); setNewGoalName('');}}>
+              onPress={() => {setModalVisible(false); setNewGoalName(''); setNewGoalLetter('');}}>
               <Text style={styles.cancelText}>算了</Text>
             </TouchableOpacity>
           </View>
@@ -573,14 +589,16 @@ const styles = StyleSheet.create({
   calendarGrid: {flexDirection: 'row', flexWrap: 'wrap', gap: 6},
   calendarDot: {width: 18, height: 18, borderRadius: 4, backgroundColor: '#1a1a1a'},
   calendarDotActive: {backgroundColor: '#ff9500'},
-  sleepHint: {marginTop: 20, alignItems: 'center'},
-  sleepHintText: {fontSize: 13, color: '#2a2a2a'},
+  sleepHint: {marginTop: 20, alignItems: 'center', paddingHorizontal: 32},
+  sleepHintText: {fontSize: 14, color: '#555', textAlign: 'center', lineHeight: 22, fontStyle: 'italic', letterSpacing: 0.3},
   addBtn: {position: 'absolute', bottom: 36, right: 24, width: 56, height: 56, borderRadius: 28, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', elevation: 8},
   addBtnText: {fontSize: 28, color: '#000', lineHeight: 32, fontWeight: '300'},
   modalOverlay: {flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'flex-end'},
   modal: {backgroundColor: '#111', borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 32, paddingBottom: 48, borderTopWidth: 1, borderColor: '#1e1e1e'},
   modalTitle: {fontSize: 24, fontWeight: '700', color: '#fff', marginBottom: 20},
+  modalLetterLabel: {fontSize: 13, color: '#555', marginBottom: 8, marginTop: 4, letterSpacing: 0.5},
   input: {backgroundColor: '#1a1a1a', borderRadius: 14, padding: 18, color: '#fff', fontSize: 17, marginBottom: 16, borderWidth: 1, borderColor: '#2a2a2a'},
+  letterInput: {minHeight: 80, textAlignVertical: 'top', fontSize: 15, color: '#ccc', fontStyle: 'italic'},
   confirmBtn: {backgroundColor: '#fff', borderRadius: 14, padding: 18, alignItems: 'center', marginBottom: 12},
   confirmBtnDisabled: {backgroundColor: '#1e1e1e'},
   confirmText: {color: '#000', fontWeight: '700', fontSize: 16},
